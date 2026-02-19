@@ -1,0 +1,7 @@
+{
+  "coverage_table": "artifacts/bc/failure_experiments/coverage_vs_performance.csv",
+  "distribution_shift_table": "artifacts/bc/failure_experiments/distribution_shift.csv",
+  "error_compounding_table": "artifacts/bc/failure_experiments/error_compounding.csv",
+  "narrow_dataset_samples": 10022,
+  "narrow_bc_eval_reward": 500.0
+}

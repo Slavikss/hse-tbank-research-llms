@@ -5,6 +5,3 @@ dz1/.venv/
 dz1/.pytest_cache/
 dz1/.ruff_cache/
 dz1/dz1_rl_bc.egg-info/
-dz1/artifacts/
-dz1/report/assets/
-dz1/report/assets_full_smoke/

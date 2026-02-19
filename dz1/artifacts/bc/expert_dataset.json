@@ -1,0 +1,10 @@
+{
+  "expert_checkpoint": "artifacts/rl/best_expert.pt",
+  "output_npz": "artifacts/bc/expert_dataset.npz",
+  "episodes_requested": 120,
+  "episodes_kept": 118,
+  "samples": 59000,
+  "kept_return_mean": 500.0,
+  "raw_return_mean": 498.94166666666666,
+  "min_reward_threshold": 475.0
+}

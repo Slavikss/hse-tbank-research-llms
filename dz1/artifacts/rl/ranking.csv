@@ -1,0 +1,11 @@
+run_name,seed,baseline,entropy_beta,entropy_beta_end,entropy_schedule,best_eval_reward,total_env_steps,metrics_csv,best_checkpoint,final_checkpoint,experiment,steps_to_475,steps_to_495
+vpg_seed0,0,none,0.0,0.0,constant,500.0,58202,artifacts/rl/vpg_seed0/metrics.csv,artifacts/rl/vpg_seed0/best.pt,artifacts/rl/vpg_seed0/final.pt,vpg,58202.0,58202.0
+vpg_value_seed2,2,value,0.0,0.0,constant,500.0,84733,artifacts/rl/vpg_value_seed2/metrics.csv,artifacts/rl/vpg_value_seed2/best.pt,artifacts/rl/vpg_value_seed2/final.pt,vpg_value,78499.0,84733.0
+vpg_value_entropy_1e2_seed0,0,value,0.01,0.0,linear,500.0,55331,artifacts/rl/vpg_value_entropy_1e2_seed0/metrics.csv,artifacts/rl/vpg_value_entropy_1e2_seed0/best.pt,artifacts/rl/vpg_value_entropy_1e2_seed0/final.pt,vpg_value_entropy_1e2,55331.0,55331.0
+vpg_value_entropy_1e3_seed2,2,value,0.001,0.001,constant,500.0,75115,artifacts/rl/vpg_value_entropy_1e3_seed2/metrics.csv,artifacts/rl/vpg_value_entropy_1e3_seed2/best.pt,artifacts/rl/vpg_value_entropy_1e3_seed2/final.pt,vpg_value_entropy_1e3,68755.0,75115.0
+vpg_value_entropy_1e3_seed1,1,value,0.001,0.001,constant,500.0,64095,artifacts/rl/vpg_value_entropy_1e3_seed1/metrics.csv,artifacts/rl/vpg_value_entropy_1e3_seed1/best.pt,artifacts/rl/vpg_value_entropy_1e3_seed1/final.pt,vpg_value_entropy_1e3,64095.0,64095.0
+vpg_value_entropy_1e3_seed0,0,value,0.001,0.001,constant,500.0,51784,artifacts/rl/vpg_value_entropy_1e3_seed0/metrics.csv,artifacts/rl/vpg_value_entropy_1e3_seed0/best.pt,artifacts/rl/vpg_value_entropy_1e3_seed0/final.pt,vpg_value_entropy_1e3,51784.0,51784.0
+vpg_rloo_seed1,1,rloo,0.0,0.0,constant,500.0,90019,artifacts/rl/vpg_rloo_seed1/metrics.csv,artifacts/rl/vpg_rloo_seed1/best.pt,artifacts/rl/vpg_rloo_seed1/final.pt,vpg_rloo,90019.0,90019.0
+vpg_seed1,1,none,0.0,0.0,constant,500.0,87494,artifacts/rl/vpg_seed1/metrics.csv,artifacts/rl/vpg_seed1/best.pt,artifacts/rl/vpg_seed1/final.pt,vpg,80859.0,87494.0
+vpg_rloo_seed0,0,rloo,0.0,0.0,constant,500.0,82998,artifacts/rl/vpg_rloo_seed0/metrics.csv,artifacts/rl/vpg_rloo_seed0/best.pt,artifacts/rl/vpg_rloo_seed0/final.pt,vpg_rloo,82998.0,82998.0
+vpg_seed2,2,none,0.0,0.0,constant,500.0,73056,artifacts/rl/vpg_seed2/metrics.csv,artifacts/rl/vpg_seed2/best.pt,artifacts/rl/vpg_seed2/final.pt,vpg,73056.0,73056.0

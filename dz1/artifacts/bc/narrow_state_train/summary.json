@@ -1,0 +1,9 @@
+{
+  "run_name": "narrow_state_train",
+  "checkpoint": "artifacts/bc/narrow_state_train/best.pt",
+  "best_val_loss": 0.02151390351355076,
+  "eval_reward_mean": 492.85,
+  "eval_reward_std": 17.925610170925843,
+  "train_samples": 8018,
+  "val_samples": 2004
+}

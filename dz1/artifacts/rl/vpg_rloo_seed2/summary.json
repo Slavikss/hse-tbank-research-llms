@@ -1,0 +1,13 @@
+{
+  "run_name": "vpg_rloo_seed2",
+  "seed": 2,
+  "baseline": "rloo",
+  "entropy_beta": 0.0,
+  "entropy_beta_end": 0.0,
+  "entropy_schedule": "constant",
+  "best_eval_reward": 238.7,
+  "total_env_steps": 76058,
+  "metrics_csv": "artifacts/rl/vpg_rloo_seed2/metrics.csv",
+  "best_checkpoint": "artifacts/rl/vpg_rloo_seed2/best.pt",
+  "final_checkpoint": "artifacts/rl/vpg_rloo_seed2/final.pt"
+}

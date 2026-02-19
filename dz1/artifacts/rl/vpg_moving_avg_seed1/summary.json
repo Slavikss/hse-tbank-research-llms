@@ -1,0 +1,13 @@
+{
+  "run_name": "vpg_moving_avg_seed1",
+  "seed": 1,
+  "baseline": "moving_avg",
+  "entropy_beta": 0.0,
+  "entropy_beta_end": 0.0,
+  "entropy_schedule": "constant",
+  "best_eval_reward": 420.1,
+  "total_env_steps": 75914,
+  "metrics_csv": "artifacts/rl/vpg_moving_avg_seed1/metrics.csv",
+  "best_checkpoint": "artifacts/rl/vpg_moving_avg_seed1/best.pt",
+  "final_checkpoint": "artifacts/rl/vpg_moving_avg_seed1/final.pt"
+}

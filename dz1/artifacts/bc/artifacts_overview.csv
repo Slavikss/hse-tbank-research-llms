@@ -1,0 +1,5 @@
+artifact,path
+expert_dataset,artifacts/bc/expert_dataset.npz
+bc_main_checkpoint,artifacts/bc/bc_main/best.pt
+coverage_table,artifacts/bc/failure_experiments/coverage_vs_performance.csv
+distribution_shift_table,artifacts/bc/failure_experiments/distribution_shift.csv

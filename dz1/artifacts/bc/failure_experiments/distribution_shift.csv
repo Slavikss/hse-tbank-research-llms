@@ -1,0 +1,5 @@
+obs_perturb_std,bc_reward_mean,expert_reward_mean
+0.0,491.4,500.0
+0.01,480.9,493.75
+0.03,479.55,465.25
+0.05,464.8,488.1

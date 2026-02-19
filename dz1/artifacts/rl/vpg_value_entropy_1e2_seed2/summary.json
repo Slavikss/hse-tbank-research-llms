@@ -1,0 +1,13 @@
+{
+  "run_name": "vpg_value_entropy_1e2_seed2",
+  "seed": 2,
+  "baseline": "value",
+  "entropy_beta": 0.01,
+  "entropy_beta_end": 0.0,
+  "entropy_schedule": "linear",
+  "best_eval_reward": 490.2,
+  "total_env_steps": 90808,
+  "metrics_csv": "artifacts/rl/vpg_value_entropy_1e2_seed2/metrics.csv",
+  "best_checkpoint": "artifacts/rl/vpg_value_entropy_1e2_seed2/best.pt",
+  "final_checkpoint": "artifacts/rl/vpg_value_entropy_1e2_seed2/final.pt"
+}

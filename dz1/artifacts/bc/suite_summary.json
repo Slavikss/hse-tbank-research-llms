@@ -1,0 +1,21 @@
+{
+  "dataset": {
+    "expert_checkpoint": "artifacts/rl/best_expert.pt",
+    "output_npz": "artifacts/bc/expert_dataset.npz",
+    "episodes_requested": 120,
+    "episodes_kept": 118,
+    "samples": 59000,
+    "kept_return_mean": 500.0,
+    "raw_return_mean": 498.94166666666666,
+    "min_reward_threshold": 475.0
+  },
+  "bc_main_summary": "artifacts/bc/bc_main/summary.json",
+  "bc_main_checkpoint": "artifacts/bc/bc_main/best.pt",
+  "failure_experiments": {
+    "coverage_table": "artifacts/bc/failure_experiments/coverage_vs_performance.csv",
+    "distribution_shift_table": "artifacts/bc/failure_experiments/distribution_shift.csv",
+    "error_compounding_table": "artifacts/bc/failure_experiments/error_compounding.csv",
+    "narrow_dataset_samples": 10022,
+    "narrow_bc_eval_reward": 500.0
+  }
+}

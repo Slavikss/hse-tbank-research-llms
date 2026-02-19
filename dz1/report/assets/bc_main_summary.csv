@@ -1,0 +1,8 @@
+,value
+run_name,bc_main
+checkpoint,artifacts/bc/bc_main/best.pt
+best_val_loss,0.004006571136415
+eval_reward_mean,500.0
+eval_reward_std,0.0
+train_samples,47200
+val_samples,11800

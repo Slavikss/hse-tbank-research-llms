@@ -1,0 +1,9 @@
+{
+  "run_name": "coverage_50",
+  "checkpoint": "artifacts/bc/coverage_50/best.pt",
+  "best_val_loss": 0.008625985123217106,
+  "eval_reward_mean": 494.3,
+  "eval_reward_std": 24.84572397818184,
+  "train_samples": 23600,
+  "val_samples": 5900
+}

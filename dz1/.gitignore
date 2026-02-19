@@ -4,9 +4,6 @@
 .vscode/
 
 # Artifacts
-artifacts/
-report/assets/
-report/assets_full_smoke/
 dz1-rl-bc.egg-info/
 .ruff_cache/
 .pytest-cache/
@@ -77,7 +74,4 @@ pip-wheel-metadata/
 # Logs
 *.log
 
-# Generated artifacts
-artifacts/
-report/assets/
 report/assets_full_smoke/
