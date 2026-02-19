@@ -103,7 +103,8 @@ def train_policy_gradient(config: PGTrainConfig) -> TrainResult:
     best_ckpt = run_dir / "best.pt"
     final_ckpt = run_dir / "final.pt"
 
-    moving_avg_baseline: float | None = None
+    global_episode_return_sum = 0.0
+    global_episode_count = 0
     metrics_rows: list[dict[str, Any]] = []
     best_eval = float("-inf")
     total_env_steps = 0
@@ -121,6 +122,8 @@ def train_policy_gradient(config: PGTrainConfig) -> TrainResult:
         total_env_steps += env_steps
 
         episode_returns = [float(np.sum(traj["rewards"])) for traj in trajectories]
+        traj_lengths = [len(traj["rewards"]) for traj in trajectories]
+        traj_totals = [float(np.sum(traj["rewards"])) for traj in trajectories]
 
         states = np.concatenate(
             [np.asarray(traj["states"], dtype=np.float32) for traj in trajectories],
@@ -142,20 +145,16 @@ def train_policy_gradient(config: PGTrainConfig) -> TrainResult:
         value_loss_val = 0.0
 
         baseline_value = np.nan
+        trajectory_advantages_t: torch.Tensor | None = None
         advantage_center = True
 
         if config.baseline == "none":
             advantages = returns.copy()
         elif config.baseline == "moving_avg":
-            batch_mean = float(np.mean(episode_returns))
-            if moving_avg_baseline is None:
-                moving_avg_baseline = batch_mean
-            else:
-                moving_avg_baseline = (
-                    1.0 - config.moving_avg_alpha
-                ) * moving_avg_baseline + config.moving_avg_alpha * batch_mean
-            baseline_value = float(moving_avg_baseline)
-            # Keep baseline effect visible by avoiding the extra mean-centering step.
+            global_episode_return_sum += float(np.sum(episode_returns))
+            global_episode_count += len(episode_returns)
+            baseline_value = global_episode_return_sum / float(max(1, global_episode_count))
+            # Mean-centering would cancel a scalar baseline; keep only scale normalization.
             advantage_center = False
             advantages = returns - baseline_value
         elif config.baseline == "value":
@@ -170,25 +169,44 @@ def train_policy_gradient(config: PGTrainConfig) -> TrainResult:
             value_loss_val = float(value_loss.item())
             advantages = (returns_t - value_pred.detach()).cpu().numpy()
         else:
-            traj_totals = [float(np.sum(traj["rewards"])) for traj in trajectories]
             traj_baselines = rloo_baselines(traj_totals)
-            baseline_per_step: list[float] = []
-            for traj_idx, traj in enumerate(trajectories):
-                baseline_per_step.extend([traj_baselines[traj_idx]] * len(traj["rewards"]))
             baseline_value = float(np.mean(traj_baselines))
-            advantages = returns - np.asarray(baseline_per_step, dtype=np.float32)
+            traj_advantages = np.asarray(traj_totals, dtype=np.float32) - np.asarray(
+                traj_baselines,
+                dtype=np.float32,
+            )
+            if config.normalize_advantage:
+                traj_advantages = normalize_advantages(traj_advantages)
+            trajectory_advantages_t = torch.tensor(
+                traj_advantages, dtype=torch.float32, device=device
+            )
 
-        if config.normalize_advantage:
-            advantages = normalize_advantages(advantages, center=advantage_center)
+        advantages_t: torch.Tensor | None = None
+        if config.baseline != "rloo":
+            if config.normalize_advantage:
+                advantages = normalize_advantages(advantages, center=advantage_center)
+            advantages_t = torch.tensor(advantages, dtype=torch.float32, device=device)
 
-        advantages_t = torch.tensor(advantages, dtype=torch.float32, device=device)
         logits = policy(states_t)
         dist = torch.distributions.Categorical(logits=logits)
         log_probs = dist.log_prob(actions_t)
         entropy = compute_entropy_bonus(logits)
 
         entropy_beta = _compute_entropy_beta(config, update)
-        pg_loss = compute_policy_loss(log_probs=log_probs, advantages=advantages_t)
+        if config.baseline == "rloo":
+            assert trajectory_advantages_t is not None
+            traj_logprob_sums: list[torch.Tensor] = []
+            start = 0
+            for length in traj_lengths:
+                end = start + length
+                traj_logprob_sums.append(log_probs[start:end].sum())
+                start = end
+            traj_logprob_sums_t = torch.stack(traj_logprob_sums)
+            pg_loss = -(traj_logprob_sums_t * trajectory_advantages_t).mean()
+        else:
+            assert advantages_t is not None
+            pg_loss = compute_policy_loss(log_probs=log_probs, advantages=advantages_t)
+
         total_loss = pg_loss - entropy_beta * entropy
 
         policy_opt.zero_grad()
