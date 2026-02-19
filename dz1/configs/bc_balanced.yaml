@@ -1,0 +1,22 @@
+env_id: CartPole-v1
+seed: 0
+device: cpu
+output_dir: artifacts/bc
+
+expert_dataset_episodes: 120
+expert_min_reward: 475.0
+
+hidden_sizes: [64, 64]
+lr: 0.001
+weight_decay: 0.0
+batch_size: 256
+epochs: 40
+val_ratio: 0.2
+early_stop_patience: 8
+
+bc_eval_episodes: 20
+
+coverage_fractions: [0.1, 0.3, 0.5, 1.0]
+shift_perturbation_stds: [0.0, 0.01, 0.03, 0.05]
+error_compounding_episodes: 25
+error_compounding_max_steps: 500

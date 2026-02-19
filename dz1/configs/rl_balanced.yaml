@@ -1,0 +1,57 @@
+common:
+  env_id: CartPole-v1
+  gamma: 0.99
+  lr_policy: 0.0003
+  lr_value: 0.001
+  hidden_sizes: [64, 64]
+  trajectories_per_update: 10
+  num_updates: 140
+  max_steps_per_episode: 500
+  normalize_advantage: true
+  grad_clip_norm: 0.5
+  eval_every: 5
+  eval_episodes: 10
+  early_stop_reward: 495.0
+  moving_avg_alpha: 0.05
+  device: cpu
+  output_dir: artifacts/rl
+  max_train_steps: 120000
+
+seeds: [0, 1, 2]
+
+experiments:
+  - name: vpg
+    baseline: none
+    entropy_beta: 0.0
+    entropy_beta_end: 0.0
+    entropy_schedule: constant
+
+  - name: vpg_moving_avg
+    baseline: moving_avg
+    entropy_beta: 0.0
+    entropy_beta_end: 0.0
+    entropy_schedule: constant
+
+  - name: vpg_value
+    baseline: value
+    entropy_beta: 0.0
+    entropy_beta_end: 0.0
+    entropy_schedule: constant
+
+  - name: vpg_rloo
+    baseline: rloo
+    entropy_beta: 0.0
+    entropy_beta_end: 0.0
+    entropy_schedule: constant
+
+  - name: vpg_value_entropy_1e3
+    baseline: value
+    entropy_beta: 0.001
+    entropy_beta_end: 0.001
+    entropy_schedule: constant
+
+  - name: vpg_value_entropy_1e2
+    baseline: value
+    entropy_beta: 0.01
+    entropy_beta_end: 0.0
+    entropy_schedule: linear
