@@ -9,12 +9,10 @@ from src.envs.arithmetic_mod.verifier import ArithmeticModVerifier
 
 SYSTEM_PROMPT = """
 Respond in the following format:
-<think>
-...
-</think>
 <answer>
 ...
 </answer>
+Do not output anything outside <answer> tags.
 """.strip()
 
 
