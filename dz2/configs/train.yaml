@@ -35,9 +35,7 @@ training:
   mask_truncated_completions: true
   temperature: 0.2
   top_p: 0.9
-  generation_kwargs:
-    stop_strings:
-      - "</answer>"
+  use_vllm: false
   log_samples: true
   log_every_calls: 20
   log_max_items: 3

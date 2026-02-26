@@ -114,6 +114,31 @@ def _run_dry(config: dict[str, Any]) -> None:
     print(f"Dry run completed on {len(rows)} samples. Mean dummy reward={avg_reward:.3f}")
 
 
+def _resolve_generation_kwargs(train_cfg: dict[str, Any]) -> tuple[dict[str, Any] | None, bool]:
+    """Prepare generation kwargs and drop unsupported options for local generation."""
+    use_vllm = bool(train_cfg.get("use_vllm", False))
+    generation_kwargs_raw = train_cfg.get("generation_kwargs")
+
+    if generation_kwargs_raw is None:
+        generation_kwargs: dict[str, Any] | None = None
+    elif isinstance(generation_kwargs_raw, dict):
+        generation_kwargs = dict(generation_kwargs_raw)
+    else:
+        raise ValueError("training.generation_kwargs must be a dict when provided")
+
+    if generation_kwargs and not use_vllm and "stop_strings" in generation_kwargs:
+        generation_kwargs.pop("stop_strings", None)
+        print(
+            "[train_grpo] Dropped training.generation_kwargs.stop_strings for non-vLLM mode "
+            "(transformers generate in GRPO does not receive tokenizer)."
+        )
+
+    if generation_kwargs == {}:
+        generation_kwargs = None
+
+    return generation_kwargs, use_vllm
+
+
 def _load_training_modules() -> tuple[Any, Any, Any, Any]:
     """Load optional training modules with Unsloth imported first."""
     try:
@@ -179,13 +204,7 @@ def _train(config: dict[str, Any]) -> None:
         log_max_chars=int(train_cfg.get("log_max_chars", 240)),
     )
 
-    generation_kwargs_raw = train_cfg.get("generation_kwargs")
-    if generation_kwargs_raw is None:
-        generation_kwargs: dict[str, Any] | None = None
-    elif isinstance(generation_kwargs_raw, dict):
-        generation_kwargs = dict(generation_kwargs_raw)
-    else:
-        raise ValueError("training.generation_kwargs must be a dict when provided")
+    generation_kwargs, use_vllm = _resolve_generation_kwargs(train_cfg)
 
     training_args = GRPOConfig(
         output_dir=str(train_cfg["output_dir"]),
@@ -198,6 +217,7 @@ def _train(config: dict[str, Any]) -> None:
         max_completion_length=max_completion_length,
         temperature=float(train_cfg.get("temperature", 0.2)),
         top_p=float(train_cfg.get("top_p", 0.9)),
+        use_vllm=use_vllm,
         generation_kwargs=generation_kwargs,
         mask_truncated_completions=bool(train_cfg.get("mask_truncated_completions", True)),
         logging_steps=int(train_cfg["logging_steps"]),

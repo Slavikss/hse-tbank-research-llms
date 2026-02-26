@@ -65,7 +65,7 @@ DEFAULT_TRAIN_CONFIG: dict[str, Any] = {
         "mask_truncated_completions": True,
         "temperature": 0.2,
         "top_p": 0.9,
-        "generation_kwargs": {"stop_strings": ["</answer>"]},
+        "use_vllm": False,
         "log_samples": True,
         "log_every_calls": 20,
         "log_max_items": 3,
