@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any
 
 from src.base.data import Data
-from src.envs.arithmetic_mod.verifier import ArithmeticModVerifier
+from src.envs.arithmetic_mod.env import ArithmeticModEnv
 
 SYSTEM_PROMPT = """
 Respond in the following format:
+<think>
+...
+</think>
 <answer>
 ...
 </answer>
-Do not output anything outside <answer> tags.
 """.strip()
 
 
@@ -40,9 +43,9 @@ def _completion_to_text(completion: object) -> str:
     return str(completion)
 
 
-def build_reward_func(verifier: ArithmeticModVerifier | None = None):
-    """Create correctness reward callback for GRPOTrainer."""
-    local_verifier = verifier or ArithmeticModVerifier()
+def build_reward_func(env: Any | None = None):
+    """Create correctness reward callback as an Env.verify wrapper."""
+    local_env = env or ArithmeticModEnv()
 
     def correctness_reward_func(
         completions: Sequence[object],
@@ -64,7 +67,8 @@ def build_reward_func(verifier: ArithmeticModVerifier | None = None):
                 ),
                 metadata=item_metadata if isinstance(item_metadata, dict) else {},
             )
-            ok = local_verifier.verify(row, _completion_to_text(completion))
+            completion_text = _completion_to_text(completion)
+            ok = local_env.verify(row, completion_text)
             rewards.append(1.0 if ok else 0.0)
         return rewards
 

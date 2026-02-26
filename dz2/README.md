@@ -10,7 +10,7 @@ Task: one-step environment where an LLM computes an arithmetic expression modulo
 - Train dataset sampling + fixed reproducible eval datasets.
 - GRPO training script for `Qwen2.5-1.5B-Instruct` with Unsloth.
 - vLLM inference + evaluation metrics + grouped bar plotting.
-- Unit tests for generation, parsing, verification, reproducibility, and train dry-run.
+- Unit tests for generation, parsing, verification, reproducibility, reward contract, and train dry-run.
 
 ## Project Structure
 
@@ -32,8 +32,6 @@ pip install -r requirements.txt
 
 ## One Command (Local Runtime)
 
-Run everything that is guaranteed to work locally in one command:
-
 ```bash
 bash scripts/run_local_pipeline.sh
 ```
@@ -45,7 +43,7 @@ This command performs:
 - train/eval dataset generation
 - GRPO dry-run
 
-If local hardware supports Unsloth + vLLM (GPU runtime), the script will automatically continue with full training, evaluation, and plotting.
+If local hardware supports Unsloth + vLLM (GPU runtime), the script automatically continues with full training, evaluation, and plotting.
 
 ## Manual Commands
 
@@ -54,7 +52,7 @@ python -m src.rl.datasets --make-train --make-eval --print-summary
 python -m src.rl.train_grpo --config configs/train.yaml --dry-run
 ```
 
-GPU-only full steps (executed automatically by the script only if supported):
+GPU-only full steps:
 
 ```bash
 python -m src.rl.train_grpo --config configs/train.yaml
@@ -76,8 +74,38 @@ Update links after upload:
 - Model (trained): `<HF_MODEL_URL>`
 - Eval datasets: `<HF_DATASET_URL>`
 
-## Notes
+## Training Configuration (strict PDF prompt)
 
+`configs/train.yaml` defaults:
+
+- `learning_rate: 5.0e-6`
+- `max_prompt_length: 448`
+- `max_completion_length: 64`
+- `mask_truncated_completions: true`
+
+`SYSTEM_PROMPT` follows PDF format exactly:
+
+```text
+Respond in the following format:
+<think>
+...
+</think>
+<answer>
+...
+</answer>
+```
+
+## Important Notes
+
+- Reward is implemented as a wrapper over `Env.verify` (`src/rl/reward.py`).
+- `extract_answer` first parses `<answer>...</answer>`, then falls back to the last integer.
 - Verifier compares normalized prediction: `predicted % M`.
-- `extract_answer` first parses `<answer>...</answer>`, then falls back to last integer.
 - Fixed seeds for reproducibility are configured in `configs/data.yaml`.
+
+### IterableDataset Deviation (documented)
+
+The PDF mentions iterable datasets for GRPO. With the pinned stack (`trl==0.24.0`), `GRPOTrainer` raises `NotImplementedError` for `IterableDataset`. Because of this, training intentionally uses `Dataset.from_list` (map-style) in `src/rl/train_grpo.py`.
+
+### Unsloth/TRL Shape Mismatch Guard
+
+A temporary guard truncates mismatched completion tensors in `src/rl/train_grpo.py` to keep local training stable with the current Unsloth/TRL combination. This is a compatibility workaround, not a change in task semantics.

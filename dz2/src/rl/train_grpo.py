@@ -73,6 +73,21 @@ def _patch_grpo_trainer_for_shape_guard(trainer: Any) -> None:
     trainer.compute_loss = types.MethodType(_safe_compute_loss, trainer)
 
 
+def _validate_sequence_lengths(
+    model_cfg: dict[str, Any],
+    train_cfg: dict[str, Any],
+) -> tuple[int, int]:
+    max_seq_length = int(model_cfg["max_seq_length"])
+    max_prompt_length = int(train_cfg["max_prompt_length"])
+    max_completion_length = int(train_cfg["max_completion_length"])
+    if max_prompt_length + max_completion_length > max_seq_length:
+        raise ValueError(
+            "Invalid lengths: max_prompt_length + max_completion_length "
+            f"must be <= model.max_seq_length ({max_seq_length})."
+        )
+    return max_prompt_length, max_completion_length
+
+
 def _load_train_rows(train_path: str | Path, limit: int | None = None) -> list[dict[str, Any]]:
     data_items = Data.from_jsonl_file(train_path)
     if limit is not None:
@@ -124,19 +139,13 @@ def _load_training_modules() -> tuple[Any, Any, Any, Any]:
 
 
 def _train(config: dict[str, Any]) -> None:
-    FastLanguageModel, HFDataset, GRPOConfig, GRPOTrainer = _load_training_modules()
-
     model_cfg = config["model"]
     train_cfg = config["training"]
     output_cfg = config["output"]
-    max_seq_length = int(model_cfg["max_seq_length"])
-    max_prompt_length = int(train_cfg["max_prompt_length"])
-    max_completion_length = int(train_cfg["max_completion_length"])
-    if max_prompt_length + max_completion_length > max_seq_length:
-        raise ValueError(
-            "Invalid lengths: max_prompt_length + max_completion_length "
-            f"must be <= model.max_seq_length ({max_seq_length})."
-        )
+
+    max_prompt_length, max_completion_length = _validate_sequence_lengths(model_cfg, train_cfg)
+
+    FastLanguageModel, HFDataset, GRPOConfig, GRPOTrainer = _load_training_modules()
 
     rows = _load_train_rows(train_path=config["data"]["train_path"], limit=None)
     if not rows:
@@ -160,6 +169,8 @@ def _train(config: dict[str, Any]) -> None:
         random_state=int(train_cfg["seed"]),
     )
 
+    # NOTE: trl==0.24.0 GRPOTrainer raises NotImplementedError for IterableDataset,
+    # so we intentionally keep a map-style dataset here.
     train_dataset = HFDataset.from_list(rows)
     reward_fn = build_reward_func()
 
