@@ -46,6 +46,7 @@
 - Reward: `correctness_reward_func` как обертка над `Env.verify` (`src/rl/reward.py`)
 - `SYSTEM_PROMPT` в формате из PDF:
   - `<think>...</think><answer>...</answer>`
+  - дополнительная инструкция для стабильности: `Stop immediately after </answer>`
 
 Ключевые гиперпараметры (актуальные):
 
@@ -54,9 +55,12 @@
 - `per_device_train_batch_size=2`
 - `gradient_accumulation_steps=8`
 - `num_generations=4`
-- `max_prompt_length=448`
-- `max_completion_length=64`
+- `max_prompt_length=416`
+- `max_completion_length=96`
 - `mask_truncated_completions=true`
+- `temperature=0.2`
+- `top_p=0.9`
+- `generation_kwargs.stop_strings=["</answer>"]`
 
 ## 5. Важное отклонение от формулировки PDF
 

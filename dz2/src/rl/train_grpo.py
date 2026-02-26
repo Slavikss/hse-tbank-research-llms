@@ -103,7 +103,7 @@ def _run_dry(config: dict[str, Any]) -> None:
     if not rows:
         raise RuntimeError("Dry run failed: train dataset is empty")
 
-    reward_fn = build_reward_func()
+    reward_fn = build_reward_func(log_samples=False)
     fake = ["<answer>0</answer>" for _ in rows]
     rewards = reward_fn(
         completions=fake,
@@ -172,7 +172,20 @@ def _train(config: dict[str, Any]) -> None:
     # NOTE: trl==0.24.0 GRPOTrainer raises NotImplementedError for IterableDataset,
     # so we intentionally keep a map-style dataset here.
     train_dataset = HFDataset.from_list(rows)
-    reward_fn = build_reward_func()
+    reward_fn = build_reward_func(
+        log_samples=bool(train_cfg.get("log_samples", True)),
+        log_every_calls=int(train_cfg.get("log_every_calls", 20)),
+        log_max_items=int(train_cfg.get("log_max_items", 3)),
+        log_max_chars=int(train_cfg.get("log_max_chars", 240)),
+    )
+
+    generation_kwargs_raw = train_cfg.get("generation_kwargs")
+    if generation_kwargs_raw is None:
+        generation_kwargs: dict[str, Any] | None = None
+    elif isinstance(generation_kwargs_raw, dict):
+        generation_kwargs = dict(generation_kwargs_raw)
+    else:
+        raise ValueError("training.generation_kwargs must be a dict when provided")
 
     training_args = GRPOConfig(
         output_dir=str(train_cfg["output_dir"]),
@@ -183,6 +196,9 @@ def _train(config: dict[str, Any]) -> None:
         num_generations=int(train_cfg["num_generations"]),
         max_prompt_length=max_prompt_length,
         max_completion_length=max_completion_length,
+        temperature=float(train_cfg.get("temperature", 0.2)),
+        top_p=float(train_cfg.get("top_p", 0.9)),
+        generation_kwargs=generation_kwargs,
         mask_truncated_completions=bool(train_cfg.get("mask_truncated_completions", True)),
         logging_steps=int(train_cfg["logging_steps"]),
         save_steps=int(train_cfg["save_steps"]),

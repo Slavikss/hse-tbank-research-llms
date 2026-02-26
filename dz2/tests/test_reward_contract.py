@@ -48,10 +48,10 @@ def test_reward_calls_env_verify() -> None:
 def test_training_lengths_guard() -> None:
     prompt_len, completion_len = _validate_sequence_lengths(
         model_cfg={"max_seq_length": 512},
-        train_cfg={"max_prompt_length": 448, "max_completion_length": 64},
+        train_cfg={"max_prompt_length": 416, "max_completion_length": 96},
     )
-    assert prompt_len == 448
-    assert completion_len == 64
+    assert prompt_len == 416
+    assert completion_len == 96
 
     with pytest.raises(ValueError):
         _validate_sequence_lengths(

@@ -79,9 +79,12 @@ Update links after upload:
 `configs/train.yaml` defaults:
 
 - `learning_rate: 5.0e-6`
-- `max_prompt_length: 448`
-- `max_completion_length: 64`
+- `max_prompt_length: 416`
+- `max_completion_length: 96`
 - `mask_truncated_completions: true`
+- `temperature: 0.2`
+- `top_p: 0.9`
+- `generation_kwargs.stop_strings: ["</answer>"]`
 
 `SYSTEM_PROMPT` follows PDF format exactly:
 
