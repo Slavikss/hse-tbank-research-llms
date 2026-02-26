@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import types
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,65 @@ from src.base.data import Data
 from src.rl.config_utils import DEFAULT_TRAIN_CONFIG, load_config
 from src.rl.datasets import to_training_rows
 from src.rl.reward import build_reward_func
+
+
+def _align_completion_tensors(inputs: dict[str, Any]) -> tuple[dict[str, Any], bool]:
+    """Truncate mismatched completion tensors to a shared token length."""
+    try:
+        import torch
+    except Exception:
+        return inputs, False
+
+    token_keys = (
+        "completion_ids",
+        "completion_mask",
+        "old_per_token_logps",
+        "ref_per_token_logps",
+        "sampling_per_token_logps",
+        "importance_sampling_ratio",
+    )
+    lengths: list[int] = []
+    for key in token_keys:
+        value = inputs.get(key)
+        if isinstance(value, torch.Tensor) and value.ndim == 2:
+            lengths.append(int(value.size(1)))
+
+    if not lengths:
+        return inputs, False
+    target = min(lengths)
+    if all(length == target for length in lengths):
+        return inputs, False
+
+    aligned_inputs = dict(inputs)
+    for key in token_keys:
+        value = aligned_inputs.get(key)
+        if isinstance(value, torch.Tensor) and value.ndim == 2 and int(value.size(1)) != target:
+            aligned_inputs[key] = value[:, :target]
+    return aligned_inputs, True
+
+
+def _patch_grpo_trainer_for_shape_guard(trainer: Any) -> None:
+    """Guard against rare Unsloth/TRL completion length mismatches."""
+    original_compute_loss = trainer.compute_loss
+    warned = {"printed": False}
+
+    def _safe_compute_loss(
+        self: Any,
+        model: Any,
+        inputs: dict[str, Any],
+        return_outputs: bool = False,
+        num_items_in_batch: int | None = None,
+    ):
+        aligned_inputs, changed = _align_completion_tensors(inputs)
+        if changed and not warned["printed"]:
+            print(
+                "[train_grpo] Detected completion tensor length mismatch. "
+                "Applying safe truncation to continue training."
+            )
+            warned["printed"] = True
+        return original_compute_loss(model, aligned_inputs, return_outputs, num_items_in_batch)
+
+    trainer.compute_loss = types.MethodType(_safe_compute_loss, trainer)
 
 
 def _load_train_rows(train_path: str | Path, limit: int | None = None) -> list[dict[str, Any]]:
@@ -69,6 +129,14 @@ def _train(config: dict[str, Any]) -> None:
     model_cfg = config["model"]
     train_cfg = config["training"]
     output_cfg = config["output"]
+    max_seq_length = int(model_cfg["max_seq_length"])
+    max_prompt_length = int(train_cfg["max_prompt_length"])
+    max_completion_length = int(train_cfg["max_completion_length"])
+    if max_prompt_length + max_completion_length > max_seq_length:
+        raise ValueError(
+            "Invalid lengths: max_prompt_length + max_completion_length "
+            f"must be <= model.max_seq_length ({max_seq_length})."
+        )
 
     rows = _load_train_rows(train_path=config["data"]["train_path"], limit=None)
     if not rows:
@@ -102,8 +170,9 @@ def _train(config: dict[str, Any]) -> None:
         gradient_accumulation_steps=int(train_cfg["gradient_accumulation_steps"]),
         max_steps=int(train_cfg["max_steps"]),
         num_generations=int(train_cfg["num_generations"]),
-        max_prompt_length=int(train_cfg["max_prompt_length"]),
-        max_completion_length=int(train_cfg["max_completion_length"]),
+        max_prompt_length=max_prompt_length,
+        max_completion_length=max_completion_length,
+        mask_truncated_completions=bool(train_cfg.get("mask_truncated_completions", True)),
         logging_steps=int(train_cfg["logging_steps"]),
         save_steps=int(train_cfg["save_steps"]),
         seed=int(train_cfg["seed"]),
@@ -118,6 +187,7 @@ def _train(config: dict[str, Any]) -> None:
         args=training_args,
         train_dataset=train_dataset,
     )
+    _patch_grpo_trainer_for_shape_guard(trainer)
     trainer.train()
 
     adapter_dir = Path(output_cfg["adapter_dir"])
