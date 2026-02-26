@@ -4,3 +4,14 @@ matplotlib>=3.8
 numpy>=1.26
 ruff>=0.6
 huggingface_hub>=0.24
+
+# RL training stack (GPU runtime)
+datasets>=2.19
+trl>=0.18.2,<=0.24.0
+transformers>=4.57,<4.58
+accelerate>=0.34
+peft>=0.12
+bitsandbytes>=0.45.5
+vllm>=0.9,<0.11
+unsloth==2026.2.1
+unsloth_zoo==2026.2.1

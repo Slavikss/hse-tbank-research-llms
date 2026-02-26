@@ -70,8 +70,13 @@ def build_eval_datasets(
 def to_training_rows(items: list[Data]) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     for item in items:
-        row_metadata = dict(item.metadata or {})
-        row_metadata["difficulty"] = item.difficulty
+        metadata = item.metadata or {}
+        # Keep only fields required by reward verification to avoid pyarrow
+        # overflow on huge intermediate integers (for example, raw expression value).
+        row_metadata = {
+            "modulus": int(metadata.get("modulus", 1)),
+            "difficulty": item.difficulty,
+        }
         rows.append(
             {
                 "prompt": format_prompt(item.question),

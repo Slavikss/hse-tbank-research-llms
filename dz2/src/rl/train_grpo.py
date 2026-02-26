@@ -47,7 +47,8 @@ def _load_training_modules() -> tuple[Any, Any, Any, Any]:
         trl_mod = importlib.import_module("trl")
     except ImportError as exc:
         raise RuntimeError(
-            "Missing optional training dependencies. Install datasets, trl, and unsloth."
+            "Missing or incompatible training dependencies. "
+            "Install compatible unsloth/unsloth_zoo/vllm + datasets + trl."
         ) from exc
     except NotImplementedError as exc:
         raise RuntimeError(
