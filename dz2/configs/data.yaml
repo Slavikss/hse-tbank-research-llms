@@ -1,0 +1,14 @@
+train:
+  total_questions: 24000
+  seed: 2026
+  max_attempts: 100
+
+eval:
+  difficulties: [2, 4, 6, 8, 10]
+  questions_per_difficulty: 300
+  seed_base: 9000
+  max_attempts: 100
+
+output:
+  train_path: data/train/train.jsonl
+  eval_dir: data/eval
