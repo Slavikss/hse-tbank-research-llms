@@ -6,13 +6,6 @@ __pycache__/
 # Virtual env
 .venv/
 
-# Training / inference artifacts
-outputs/
-results/predictions/
-results/metrics/*.json
-results/metrics/*.csv
-results/figures/*.png
-
 # OS
 .DS_Store
 
