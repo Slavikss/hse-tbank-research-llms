@@ -17,6 +17,15 @@ def extract_zero_correct_indices(rows: list[dict[str, Any]]) -> list[int]:
     return [idx for idx, row in enumerate(rows) if int(row["c"]) == 0]
 
 
+def intersect_zero_index_sets(index_sets: list[list[int]]) -> list[int]:
+    if not index_sets:
+        return []
+    common = set(index_sets[0])
+    for idxs in index_sets[1:]:
+        common &= set(idxs)
+    return sorted(common)
+
+
 def select_hard_items(
     items: list[Data],
     zero_correct_indices: list[int],
@@ -40,6 +49,7 @@ def _mine_one_split(
     top_p: float,
     max_tokens: int,
     seed: int,
+    certify_seeds: list[int],
 ) -> tuple[list[Data], dict[str, Any]]:
     prefilter_result = evaluate_passk(
         model_path=model_path,
@@ -56,19 +66,29 @@ def _mine_one_split(
     prefilter_indices = extract_zero_correct_indices(prefilter_result["rows"])
     prefilter_candidates = [items[idx] for idx in prefilter_indices]
 
-    certify_result = evaluate_passk(
-        model_path=model_path,
-        items=prefilter_candidates,
-        backend_name=backend_name,
-        n=certify_n,
-        k_values=[1, certify_n],
-        temperature=temperature,
-        top_p=top_p,
-        max_tokens=max_tokens,
-        batch_size=4,
-        seed=seed + 1,
-    )
-    certify_indices = extract_zero_correct_indices(certify_result["rows"])
+    if not prefilter_candidates:
+        certify_indices: list[int] = []
+        certify_per_seed: dict[str, int] = {}
+    else:
+        zero_sets: list[list[int]] = []
+        certify_per_seed = {}
+        for certify_seed in certify_seeds:
+            certify_result = evaluate_passk(
+                model_path=model_path,
+                items=prefilter_candidates,
+                backend_name=backend_name,
+                n=certify_n,
+                k_values=[1, certify_n],
+                temperature=temperature,
+                top_p=top_p,
+                max_tokens=max_tokens,
+                batch_size=4,
+                seed=int(certify_seed),
+            )
+            zero_indices = extract_zero_correct_indices(certify_result["rows"])
+            zero_sets.append(zero_indices)
+            certify_per_seed[str(certify_seed)] = len(zero_indices)
+        certify_indices = intersect_zero_index_sets(zero_sets)
     hard_items = select_hard_items(
         items=prefilter_candidates,
         zero_correct_indices=certify_indices,
@@ -81,6 +101,8 @@ def _mine_one_split(
         "prefilter_n": prefilter_n,
         "prefilter_zero": len(prefilter_indices),
         "certify_n": certify_n,
+        "certify_seeds": list(certify_seeds),
+        "certify_zero_per_seed": certify_per_seed,
         "certify_zero": len(certify_indices),
         "selected": len(hard_items),
         "target": target,
@@ -98,6 +120,16 @@ def main() -> None:
     model_cfg = config["model"]
     sampling = config["sampling"]
     mining = config["hard_mining"]
+    base_seed = int(mining["seed"])
+    train_seed = int(mining.get("seed_train", base_seed))
+    val_seed = int(mining.get("seed_val", base_seed))
+    certify_seeds_raw = mining.get("certify_seeds")
+    if certify_seeds_raw is None:
+        certify_seeds = [base_seed]
+    else:
+        certify_seeds = [int(v) for v in certify_seeds_raw]
+    if not certify_seeds:
+        raise ValueError("hard_mining.certify_seeds must not be empty")
 
     train_items = Data.from_jsonl_file(data_cfg["train_path"])
     val_items = Data.from_jsonl_file(data_cfg["val_path"])
@@ -112,7 +144,8 @@ def main() -> None:
         temperature=float(sampling["temperature"]),
         top_p=float(sampling["top_p"]),
         max_tokens=int(sampling["max_tokens"]),
-        seed=int(mining["seed"]),
+        seed=train_seed,
+        certify_seeds=certify_seeds,
     )
     hard_val, val_stats = _mine_one_split(
         model_path=str(model_cfg["baseline"]),
@@ -124,7 +157,8 @@ def main() -> None:
         temperature=float(sampling["temperature"]),
         top_p=float(sampling["top_p"]),
         max_tokens=int(sampling["max_tokens"]),
-        seed=int(mining["seed"] + 17),
+        seed=val_seed,
+        certify_seeds=certify_seeds,
     )
 
     hard_train_path = Path(data_cfg["hard_train_path"])

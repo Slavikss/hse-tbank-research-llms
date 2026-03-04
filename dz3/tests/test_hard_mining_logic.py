@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from src.base.data import Data
-from src.rl.hard_mining import extract_zero_correct_indices, select_hard_items
+from src.rl.hard_mining import (
+    extract_zero_correct_indices,
+    intersect_zero_index_sets,
+    select_hard_items,
+)
 
 
 def test_extract_zero_correct_indices() -> None:
@@ -15,3 +19,8 @@ def test_select_hard_items_respects_target() -> None:
     assert len(out) == 3
     questions = {item.question for item in out}
     assert questions.issubset({"0", "1", "2", "3", "4"})
+
+
+def test_intersect_zero_index_sets() -> None:
+    assert intersect_zero_index_sets([[0, 1, 2], [1, 2, 3], [2, 4]]) == [2]
+    assert intersect_zero_index_sets([]) == []

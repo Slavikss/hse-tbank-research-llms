@@ -49,6 +49,9 @@ DEFAULT_HARD_CONFIG: dict[str, Any] = {
         "hard_train_target": 2048,
         "hard_val_target": 256,
         "seed": 2026,
+        "seed_train": 2026,
+        "seed_val": 2026,
+        "certify_seeds": [2026],
     },
 }
 
