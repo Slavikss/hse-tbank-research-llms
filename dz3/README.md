@@ -90,3 +90,18 @@ bash scripts/run_dz3_pipeline.sh
 
 The script always runs checks/tests/data generation and dry-runs.
 If CUDA is available, it also runs full hard-mining, training, evaluation, and plotting.
+
+## Night pipeline (12h target on RTX 5090)
+
+Use dedicated configs and a strict execution order for the overnight run:
+
+```bash
+bash scripts/run_night_pipeline.sh
+```
+
+Night-specific configs:
+
+- `configs/hard.night.yaml`
+- `configs/train.night.yaml`
+
+Logs are saved to `logs/night/`.
