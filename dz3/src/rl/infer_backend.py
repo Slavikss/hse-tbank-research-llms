@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Sequence
 
 
@@ -13,6 +15,13 @@ def _has_module(name: str) -> bool:
 
 def has_vllm() -> bool:
     return _has_module("vllm")
+
+
+def is_peft_adapter_dir(model_path: str) -> bool:
+    path = Path(model_path)
+    if not path.is_dir():
+        return False
+    return (path / "adapter_config.json").exists() and not (path / "config.json").exists()
 
 
 @dataclass
@@ -75,14 +84,40 @@ class TransformersBackend(InferenceBackend):
 
         self.backend_name = "transformers"
         self._torch = torch
+        load_path = model_path
+        if is_peft_adapter_dir(model_path):
+            from peft import PeftModel
+
+            adapter_cfg_path = Path(model_path) / "adapter_config.json"
+            adapter_cfg = json.loads(adapter_cfg_path.read_text(encoding="utf-8"))
+            base_model_path = str(adapter_cfg.get("base_model_name_or_path", "")).strip()
+            if not base_model_path:
+                raise RuntimeError(
+                    f"PEFT adapter at '{model_path}' is missing base_model_name_or_path"
+                )
+
+            base_model = AutoModelForCausalLM.from_pretrained(
+                base_model_path,
+                trust_remote_code=True,
+                device_map="auto",
+            )
+            self._model = PeftModel.from_pretrained(base_model, model_path)
+            self.backend_name = "transformers-peft"
+            load_path = base_model_path
+        else:
+            self._model = AutoModelForCausalLM.from_pretrained(
+                model_path,
+                trust_remote_code=True,
+                device_map="auto",
+            )
+
         self._tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
         if self._tokenizer.pad_token is None and self._tokenizer.eos_token is not None:
             self._tokenizer.pad_token = self._tokenizer.eos_token
-        self._model = AutoModelForCausalLM.from_pretrained(
-            model_path,
-            trust_remote_code=True,
-            device_map="auto",
-        )
+        if self._tokenizer.pad_token is None:
+            self._tokenizer = AutoTokenizer.from_pretrained(load_path, trust_remote_code=True)
+        if self._tokenizer.pad_token is None and self._tokenizer.eos_token is not None:
+            self._tokenizer.pad_token = self._tokenizer.eos_token
         self._model.eval()
 
     def generate(
@@ -127,6 +162,16 @@ def create_backend(model_path: str, backend: str = "auto") -> InferenceBackend:
     normalized = backend.strip().lower()
     if normalized not in {"auto", "vllm", "transformers"}:
         raise ValueError("backend must be one of: auto, vllm, transformers")
+
+    adapter_only = is_peft_adapter_dir(model_path)
+    if adapter_only and normalized == "vllm":
+        raise RuntimeError(
+            "Requested vLLM backend for PEFT adapter-only directory. "
+            "Use backend=transformers or save a merged model with config.json."
+        )
+
+    if adapter_only and normalized == "auto":
+        return TransformersBackend(model_path=model_path)
 
     if normalized in {"auto", "vllm"} and has_vllm():
         return VLLMBackend(model_path=model_path)

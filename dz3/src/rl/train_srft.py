@@ -257,7 +257,11 @@ def _train(config: dict[str, Any]) -> None:
 
     output_dir = Path(srft_cfg["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
-    model.save_pretrained(str(output_dir))
+    if hasattr(model, "merge_and_unload"):
+        merged_model = model.merge_and_unload()
+        merged_model.save_pretrained(str(output_dir))
+    else:
+        model.save_pretrained(str(output_dir))
     tokenizer.save_pretrained(str(output_dir))
     print(f"SRFT training completed. Saved model to {output_dir}")
 
