@@ -1,63 +1,53 @@
-# DZ3 Report: SRFT on Hard Subsets
+# Ночной прогон: что вышло на практике
 
-## 1. Experimental Setup
+Ночью прогнали полный сценарий с базовой моделью Qwen 2.5 0.5B Instruct. Цель была простая: собрать сложные примеры, дообучить модели и утром получить честное сравнение на обычной и сложной валидации.
 
-- Model: `Qwen/Qwen2.5-0.5B-Instruct`
-- Generation params (fixed across all comparisons):
-  - `temperature=0.7`
-  - `top_p=0.95`
-  - `max_tokens=96`
-- Splits:
-  - `train`
-  - `val (full)`
-  - `Hard-train` (`pass@128=0` for baseline)
-  - `Hard-val` (`pass@128=0` for baseline)
+Если коротко, самый полезный результат такой: связка SFT потом GRPO реально подняла качество на сложной выборке. При этом SRFT в этой попытке нормально не доехал до финальной оценки, и это главный минус прогона.
 
-## 2. Baseline Hard Subset Verification
+## Что получилось по данным
 
-Fill from `results/passk/hard_mining_report.json` and baseline pass@k files.
+Сложный train набрали почти как планировали: 1005 примеров при цели 1024.  
+Сложный val набрали точно по цели: 64 из 64.
 
-- Hard-train size:
-- Hard-val size:
-- Baseline pass@128 on Hard-train:
-- Baseline pass@128 on Hard-val:
+Но важный момент: baseline на hard val уже был не нулевой.  
+То есть выборка сложная, но не полностью "нерешаемая".
 
-## 3. Main Quality Comparison
+## Что получилось по качеству
 
-Compare these models:
+На обычной валидации baseline в целом сильнее на малых и средних k.  
+SFT потом GRPO немного проседает по первым попыткам, но на большом числе попыток уже не хуже, а местами чуть лучше.
 
-- Baseline
-- GRPO-only
-- SFT-only
-- SFT->GRPO
-- SRFT
+На сложной валидации прирост очень заметный:
 
-Use:
+- baseline pass@128: 0.1406
+- SFT потом GRPO pass@128: 0.6406
 
-- `results/figures/passk_val.png`
-- `results/figures/passk_hard_val.png`
+Это самый сильный и полезный итог ночи.
 
-## 4. Training Dynamics
+## Что видно по динамике обучения
 
-Use:
+У SFT потом GRPO награда в среднем держалась примерно возле минус 0.88, длина ответов была довольно стабильной. В логах были резкие всплески лосса и KL, но обучение до конца дошло, итоговая модель сохранилась.
 
-- `results/figures/reward_curve.png`
-- `results/figures/gen_len_curve.png`
-- `results/figures/entropy_curve.png`
+У SRFT картина хуже: награда почти все время около минус 1, энтропия заметно падает, длина ответов к концу тоже падает. Это больше похоже на деградацию поведения, чем на улучшение.
 
-## 5. Did We Break the Zero?
+## Где были проблемы
 
-State clearly:
+Главная проблема была в SRFT оценке. Финальных файлов с его pass@k по val и hard val в итоге не получилось.
 
-- `Hard-val pass@128`: baseline `0` -> trained `> 0` (or not)
+Что сломалось по пути:
 
-## 6. Length and Diversity Trade-off
+1. сначала SRFT директория была в формате адаптера, без полноценного config файла;
+2. потом упирались в память на старте vLLM;
+3. часть шагов шла через пайп в tee, из-за чего следующие команды могли стартовать даже после ошибки оценки.
 
-- Mean/median generation lengths on `val` and `Hard-val`
-- Did full-val pass@k drop after RL?
-- If yes, discuss magnitude and likely reasons
+Из-за этого итоговые графики pass@k содержат только baseline и SFT потом GRPO.
 
-## 7. Notes and Limitations
+## Нормальный план на следующий запуск
 
-- Runtime/memory constraints
-- Any deviations from planned protocol
+1. Жестко запускать все ночные шаги с fail fast, чтобы при первой ошибке пайплайн останавливался.
+2. После SRFT тренировки сразу проверять, что модель сохранена в полном формате, а не только адаптер.
+3. Для SRFT оценки сразу иметь запасной вариант через transformers, если vLLM не поднимается по памяти.
+4. Делать быстрый промежуточный мини-чек на hard val каждые 50 шагов, чтобы не ждать утра и не ловить сюрпризы в конце.
+5. Если нужна по-настоящему "злая" hard валидация, надо сильнее ужесточать hard mining.
+
+В целом прогон не идеальный, но точно не пустой: мы получили рабочее улучшение на сложной выборке и сразу увидели узкое место, которое мешает довести SRFT до честного финального сравнения.
