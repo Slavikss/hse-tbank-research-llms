@@ -118,6 +118,8 @@ class TransformersBackend(InferenceBackend):
             self._tokenizer = AutoTokenizer.from_pretrained(load_path, trust_remote_code=True)
         if self._tokenizer.pad_token is None and self._tokenizer.eos_token is not None:
             self._tokenizer.pad_token = self._tokenizer.eos_token
+        # Decoder-only generation with right padding can produce incorrect outputs/warnings.
+        self._tokenizer.padding_side = "left"
         self._model.eval()
 
     def generate(
